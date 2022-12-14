@@ -98,7 +98,11 @@ celerybeat-schedule.*
 *.sage.py
 
 # Environments
+<<<<<<< HEAD
 .env
+=======
+innotter/.env
+>>>>>>> 8c80a4906515f6e0d5ad4a1a9607b0bcb7b59425
 .venv
 env/
 venv/
@@ -136,3 +140,5 @@ GitHub.sublime-settings
 !.vscode/launch.json
 !.vscode/extensions.json
 .history
+
+Pipfile.lock
