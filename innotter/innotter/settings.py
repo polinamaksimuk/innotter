@@ -31,6 +31,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+AUTH_USER_MODEL = "person.User"
+
 
 # Application definition
 
@@ -42,6 +44,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "debug_toolbar",
+    "person",
+    "page",
+    "post",
 ]
 
 MIDDLEWARE = [
