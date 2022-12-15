@@ -1,0 +1,30 @@
+version: '3.0'
+
+services:
+  db:
+    image: postgres:latest
+    container_name: db-innotter
+    volumes:
+      - ./db/pgdata:/var/lib/postgresql/data
+    expose:
+      - 5432
+    ports:
+      - 3432:5432
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+
+  innoter-api:
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    env_file:
+      - innotter/.env
+    ports:
+      - 8000:8000
+    restart: on-failure
+    command: bash -c "python innotter/manage.py migrate && python innotter/manage.py runserver 0.0.0.0:8000"
