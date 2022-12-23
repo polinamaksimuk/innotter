@@ -3,7 +3,7 @@ version: '3.0'
 services:
   db:
     image: postgres:latest
-    container_name: db-innotter
+    container_name: db
     volumes:
       - ./db/pgdata:/var/lib/postgresql/data
     expose:
