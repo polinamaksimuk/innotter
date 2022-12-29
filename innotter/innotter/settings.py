@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "rest_framework",
 ]
 
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -67,7 +68,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "innotter.wsgi.application"
+WSGI_APPLICATION = f"innotter.wsgi.app"
 
 
 # Database
