@@ -9,6 +9,6 @@ RUN pip install -r requirements.txt
 
 WORKDIR /app
 
-COPY . .
+COPY innotter .
 
-RUN python innotter/manage.py collectstatic --noinput --clear
+RUN python manage.py collectstatic --noinput --clear
