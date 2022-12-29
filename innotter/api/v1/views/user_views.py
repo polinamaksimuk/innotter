@@ -1,6 +1,7 @@
 from api.v1.serializers.user_serializers import UserRegisterSerializer, UserSerializer
 from person.models import User
-from rest_framework import permissions, status, viewsets
+from rest_framework import status, viewsets
+from rest_framework.mixins import CreateModelMixin
 from rest_framework.response import Response
 
 
@@ -10,7 +11,7 @@ class UserViewSet(viewsets.ModelViewSet):
     # permission_classes = [permissions.IsAuthenticated]
 
 
-class UserRegisterViewSet(viewsets.ModelViewSet):
+class UserRegisterViewSet(CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
 
