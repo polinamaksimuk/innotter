@@ -68,7 +68,7 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = f"innotter.wsgi.app"
+WSGI_APPLICATION = f"innotter.wsgi.app"
 
 
 # Database

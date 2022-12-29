@@ -8,7 +8,6 @@ from rest_framework.response import Response
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    # permission_classes = [permissions.IsAuthenticated]
 
 
 class UserRegisterViewSet(CreateModelMixin, viewsets.GenericViewSet):
@@ -17,11 +16,10 @@ class UserRegisterViewSet(CreateModelMixin, viewsets.GenericViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = UserRegisterSerializer(data=request.data)
-        data = {}
         if serializer.is_valid():
             serializer.save()
-            data["response"] = "Registration completed successfully. Now login!"
-            return Response(data, status=status.HTTP_200_OK)
+            return Response(
+                data={"message": "Registration completed successfully. Now login!"}, status=status.HTTP_200_OK
+            )
         else:
-            data = serializer.errors
-            return Response(data)
+            return Response(data={"message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
