@@ -30,7 +30,7 @@ toml = "==0.10.2"
 tomli = "==2.0.1"
 typing-extensions = "==4.4.0"
 virtualenv = "==20.17.1"
-jwt = "*"
+pyjwt = "*"
 
 [dev-packages]
 

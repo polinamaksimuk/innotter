@@ -2,10 +2,9 @@ FROM python:3.10-slim-buster
 
 ENV PYTHONUNBUFFERED=1
 
-RUN pip install "gunicorn==20.0.4"
-
-COPY requirements.txt /
-RUN pip install -r requirements.txt
+COPY Pipfile Pipfile.lock ./
+RUN python -m pip install --upgrade pip
+RUN pip install pipenv && pipenv install --dev --system --deploy
 
 WORKDIR /app
 
