@@ -1,3 +1,6 @@
+import traceback
+
+import jwt
 from api.v1.serializers.user_serializers import UserRegisterSerializer, UserSerializer
 from api.v1.services.user_services import (
     check_and_update_refresh_token,
@@ -5,6 +8,7 @@ from api.v1.services.user_services import (
     generate_refresh_token,
     set_refresh_token,
 )
+from django.core.exceptions import ObjectDoesNotExist
 from person.models import User
 from rest_framework import parsers, renderers, status, viewsets
 from rest_framework.authtoken.serializers import AuthTokenSerializer
@@ -49,8 +53,8 @@ class JSONWebTokenAuthViewSet(viewsets.ViewSet):
         if serializer.is_valid():
             user = serializer.validated_data["user"]
             token = generate_access_token(user)
-            refresh_token = generate_refresh_token()
-            set_refresh_token(refresh_token=refresh_token, user=user)
+            refresh_token = generate_refresh_token(user)
+            set_refresh_token(refresh_token)
             response = Response({"token": token, "refresh_token": refresh_token})
             response.set_cookie(
                 key=settings.CUSTOM_JWT["AUTH_COOKIE"],
@@ -72,28 +76,41 @@ class JSONWebTokenAuthViewSet(viewsets.ViewSet):
             return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=("post",), detail=False)
+    @action(methods=("post",), detail=False, url_path="refresh", url_name="refresh")
     def refresh(self, request):
         refresh_token = request.COOKIES.get(settings.CUSTOM_JWT["AUTH_COOKIE_REFRESH"])
         if refresh_token:
-            new_tokens = check_and_update_refresh_token(refresh_token)
-            if new_tokens:
-                response = Response(new_tokens)
-                response.set_cookie(
-                    key=settings.CUSTOM_JWT["AUTH_COOKIE"],
-                    value=new_tokens[settings.CUSTOM_JWT["AUTH_COOKIE"]],
-                    expires=settings.CUSTOM_JWT["ACCESS_TOKEN_LIFETIME"],
-                    secure=settings.CUSTOM_JWT["AUTH_COOKIE_SECURE"],
-                    httponly=settings.CUSTOM_JWT["AUTH_COOKIE_HTTP_ONLY"],
-                    samesite=settings.CUSTOM_JWT["AUTH_COOKIE_SAMESITE"],
+            try:
+                user_jwt = jwt.decode(
+                    refresh_token,
+                    settings.SECRET_KEY,
+                    algorithms=["HS256"],
                 )
-                response.set_cookie(
-                    key=settings.CUSTOM_JWT["AUTH_COOKIE_REFRESH"],
-                    value=new_tokens[settings.CUSTOM_JWT["AUTH_COOKIE_REFRESH"]],
-                    expires=settings.CUSTOM_JWT["REFRESH_TOKEN_LIFETIME"],
-                    secure=settings.CUSTOM_JWT["AUTH_COOKIE_SECURE"],
-                    httponly=settings.CUSTOM_JWT["AUTH_COOKIE_HTTP_ONLY"],
-                    samesite=settings.CUSTOM_JWT["AUTH_COOKIE_SAMESITE"],
-                )
-                return response
+                user_jwt = User.objects.get(username=user_jwt["username"])
+                new_tokens = check_and_update_refresh_token(refresh_token, user_jwt)
+
+                if new_tokens:
+                    response = Response(new_tokens)
+                    response.set_cookie(
+                        key=settings.CUSTOM_JWT["AUTH_COOKIE"],
+                        value=new_tokens[settings.CUSTOM_JWT["AUTH_COOKIE"]],
+                        expires=settings.CUSTOM_JWT["ACCESS_TOKEN_LIFETIME"],
+                        secure=settings.CUSTOM_JWT["AUTH_COOKIE_SECURE"],
+                        httponly=settings.CUSTOM_JWT["AUTH_COOKIE_HTTP_ONLY"],
+                        samesite=settings.CUSTOM_JWT["AUTH_COOKIE_SAMESITE"],
+                    )
+                    response.set_cookie(
+                        key=settings.CUSTOM_JWT["AUTH_COOKIE_REFRESH"],
+                        value=new_tokens[settings.CUSTOM_JWT["AUTH_COOKIE_REFRESH"]],
+                        expires=settings.CUSTOM_JWT["REFRESH_TOKEN_LIFETIME"],
+                        secure=settings.CUSTOM_JWT["AUTH_COOKIE_SECURE"],
+                        httponly=settings.CUSTOM_JWT["AUTH_COOKIE_HTTP_ONLY"],
+                        samesite=settings.CUSTOM_JWT["AUTH_COOKIE_SAMESITE"],
+                    )
+
+                    return response
+
+            except (ObjectDoesNotExist, jwt.exceptions.ExpiredSignatureError):
+                traceback.print_exc()
+
         return Response({"message": "Your token isn't valid"})

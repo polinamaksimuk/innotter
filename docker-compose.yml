@@ -22,9 +22,18 @@ services:
       - .:/app
     depends_on:
       - db
+      - redis
     env_file:
       - innotter/.env
     ports:
       - 8000:8000
     restart: on-failure
     command: bash -c "python innotter/manage.py migrate && python innotter/manage.py runserver 0.0.0.0:8000"
+
+  redis:
+      image: redis:7.0-alpine
+      container_name: redis
+      expose:
+        - 6379
+      ports:
+        - 6379:6379
