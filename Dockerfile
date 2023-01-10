@@ -1,14 +1,14 @@
-FROM python:3.10-slim-buster
+FROM python:3.8-slim-buster
 
 ENV PYTHONUNBUFFERED=1
 
-RUN pip install "gunicorn==20.0.4"
-
-COPY requirements.txt /
-RUN pip install -r requirements.txt
-
 WORKDIR /app
 
-COPY innotter .
+COPY Pipfile.lock ./
+COPY Pipfile ./
 
-RUN python manage.py collectstatic --noinput --clear
+RUN python -m pip install --upgrade pip
+RUN pip install pipenv
+RUN pipenv install --deploy --system --ignore-pipfile
+
+COPY innotter .
