@@ -10,6 +10,7 @@ from api.v1.services.user_services import (
 )
 from django.core.exceptions import ObjectDoesNotExist
 from person.models import User
+from person.permissions import *
 from rest_framework import parsers, renderers, status, viewsets
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.decorators import action
@@ -22,6 +23,25 @@ from innotter import settings
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = []
+    permissions_dict = {
+        "partial_update": IsUserOwnerOrAdmin,
+        "update": IsUserOwnerOrAdmin,
+        "destroy": IsUserOwnerOrAdmin,
+        "create": (permissions.AllowAny,),
+        "list": (
+            permissions.IsAuthenticated,
+            IsAdmin,
+        ),
+        "retrieve": (permissions.IsAuthenticated,),
+    }
+
+    def get_permissions(self):
+        if self.action in self.permissions_dict:
+            perms = self.permissions_dict[self.action]
+        else:
+            perms = []
+        return [permission() for permission in perms]
 
 
 class UserRegisterViewSet(CreateModelMixin, viewsets.GenericViewSet):

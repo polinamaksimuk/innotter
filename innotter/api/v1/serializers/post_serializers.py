@@ -1,10 +1,10 @@
-from api.v1.serializers.page_serializers import PageSerializer
+from api.v1.serializers.page_serializers import PageUserSerializer
 from post.models import Post
 from rest_framework import serializers
 
 
 class PostSerializer(serializers.ModelSerializer):
-    page = PageSerializer()
+    page = PageUserSerializer()
 
     class Meta:
         model = Post

@@ -9,7 +9,7 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
-class PageSerializer(serializers.ModelSerializer):
+class PageUserSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     followers = UserSerializer(many=True)
     owner = UserSerializer()
@@ -18,4 +18,5 @@ class PageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Page
         depth = 1
-        fields = ["name", "uuid", "description", "image", "owner", "followers", "follow_requests", "tags"]
+        fields = ["name", "uuid", "description", "image", "owner", "followers", "follow_requests", "tags", "is_private"]
+        read_only_fields = ("unblock_date", "owner")
