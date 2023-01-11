@@ -25,19 +25,15 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = []
     permissions_dict = {
-        "partial_update": (permissions.IsAuthenticated, IsUserOwnerOrAdmin),
-        "update": (permissions.IsAuthenticated, IsUserOwnerOrAdmin),
-        "destroy": (permissions.IsAuthenticated, IsUserOwnerOrAdmin),
+        "partial_update": IsUserOwnerOrAdmin,
+        "update": IsUserOwnerOrAdmin,
+        "destroy": IsUserOwnerOrAdmin,
         "create": (permissions.AllowAny,),
         "list": (
             permissions.IsAuthenticated,
             IsAdmin,
         ),
         "retrieve": (permissions.IsAuthenticated,),
-        "image": (
-            permissions.IsAuthenticated,
-            IsUserOwnerOrAdmin,
-        ),
     }
 
     def get_permissions(self):

@@ -1,7 +1,8 @@
 from api.v1.serializers.page_serializers import PageUserSerializer, TagSerializer
 from page.models import Page, Tag
 from page.permissions import *
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.response import Response
 
 
 class PageViewSet(viewsets.ModelViewSet):
@@ -9,20 +10,11 @@ class PageViewSet(viewsets.ModelViewSet):
     serializer_class = PageUserSerializer
     permission_classes = []
     permissions_dict = {
-        "partial_update": (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
-        "update": (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
-        "destroy": (permissions.IsAuthenticated, IsPageOwner),
+        "partial_update": IsPageOwnerOrModeratorOrAdmin,
+        "update": IsPageOwnerOrModeratorOrAdmin,
+        "destroy": IsPageOwner,
         "create": (permissions.IsAuthenticated,),
         "list": (permissions.IsAuthenticated,),
-        "retrieve": (permissions.IsAuthenticated),
-        "follow_requests": (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
-        "followers": (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
-        "follow": (permissions.IsAuthenticated),
-        "posts": (permissions.IsAuthenticated),
-        "image": (
-            permissions.IsAuthenticated,
-            IsPageOwnerOrModeratorOrAdmin,
-        ),
     }
 
     def get_permissions(self):
@@ -31,6 +23,16 @@ class PageViewSet(viewsets.ModelViewSet):
         else:
             perms = []
         return [permission() for permission in perms]
+
+    def check_permissions(self, request):
+        try:
+            obj = Page.objects.get(id=self.kwargs.get("pk"))
+        except Page.DoesNotExist:
+            return Response({"message": "Not found"}, status.HTTP_404_NOT_FOUND)
+        else:
+            self.check_object_permissions(request, obj)
+        finally:
+            return super().check_permissions(request)
 
 
 class TagViewSet(viewsets.ModelViewSet):
