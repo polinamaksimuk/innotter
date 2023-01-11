@@ -23,7 +23,6 @@ class Page(models.Model):
 
     is_private = models.BooleanField(default=False)
     follow_requests = models.ManyToManyField("person.User", related_name="requests")
-
     unblock_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
