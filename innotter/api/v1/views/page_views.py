@@ -1,27 +1,16 @@
 from api.v1.serializers.page_serializers import (
     AdminPageDetailSerializer,
-    FollowerSerializer,
     FollowersListSerializer,
+    FollowRequestsSerializer,
     ModerPageDetailSerializer,
     PageListSerializer,
     PageUserSerializer,
     TagSerializer,
 )
-from api.v1.serializers.post_serializers import PostSerializer
-from api.v1.services.page_services import (
-    accept_all_follow_requests,
-    accept_follow_request,
-    deny_follow_request,
-    follow_page,
-    get_blocked_pages,
-    get_page_follow_requests,
-    get_page_followers,
-    get_unblocked_pages,
-    unfollow_page,
-)
+from api.v1.services.page_services import PageServices
+from django.shortcuts import get_object_or_404
 from page.models import Page, Tag
 from page.permissions import *
-from post.models import Post
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
@@ -38,12 +27,17 @@ class PageViewSet(viewsets.ModelViewSet):
         "create": (permissions.IsAuthenticated,),
         "list": (permissions.IsAuthenticated,),
         "retrieve": (
+            IsAdminOrModerator,
             PageIsPublicOrOwner,
             PageIsntBlocked,
         ),
         "blocked": (
             permissions.IsAuthenticated,
             IsAdminOrModerator,
+        ),
+        "follow-requests": (
+            IsPageOwnerOrModeratorOrAdmin,
+            PageIsntBlocked,
         ),
         "followers": (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin, PageIsntBlocked),
         "follow": (
@@ -96,7 +90,7 @@ class PageViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role in ("admin", "moderator"):
             return Page.objects.all().order_by("id")
-        return get_unblocked_pages(is_owner_page=False)
+        return PageServices.get_unblocked_pages(is_owner_page=False)
 
     def get_serializer_class(self):
         if self.action in ("retrieve", "update", "partial_update", "follow", "unfollow"):
@@ -105,124 +99,82 @@ class PageViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=("get",))
     def blocked(self, request):
-        all_blocked_pages = get_blocked_pages()
+        all_blocked_pages = PageServices.get_blocked_pages()
         serializer = self.get_serializer(all_blocked_pages, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=("get",))
-    def followers(self, pk=None):
-        all_page_followers = get_page_followers(page_pk=pk)
-        serializer = self.get_serializer(all_page_followers, many=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=("post",))
-    def follow(self, pk=None):
-        is_private, page_owner_id, is_follower = follow_page(user=self.request.user, page_pk=pk)
-        if not is_private:
-            if not is_follower:
-                data = {"method": "add", "user_id": page_owner_id, "value": "subscribers"}
-                data.update()
-            return Response(
-                {"detail": "You have subscribed to the page or you are already a subscriber."},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {"detail": "You have applied for a subscription."},
-            status=status.HTTP_200_OK,
-        )
-
-    @action(detail=True, methods=["post"], url_path="unfollow")
-    def unfollow(self, pk=None):
-        page_owner_id, is_follower = unfollow_page(user=self.request.user, page_pk=pk)
-        if is_follower:
-            data = {"method": "delete", "user_id": page_owner_id, "value": "subscribers"}
-            data.update()
-        return Response(
-            {"detail": "You have unsubscribed from the page or have already unsubscribed."},
-            status=status.HTTP_200_OK,
-        )
-
-    @action(detail=True, methods=("get",))
-    def posts(self, request):
+    @action(detail=True, methods=("get",), url_path="follow_requests")
+    def follow_requests(self, request, pk=None):
         page = self.get_object()
         self.check_permissions(request)
         self.check_object_permissions(request, page)
-        query = Post.objects.filter(page=page)
-        post_serializer = PostSerializer(query, many=True)
-        return Response({"posts": post_serializer.data}, status.HTTP_200_OK)
+        if page.is_private:
+            serializer = FollowRequestsSerializer(page)
+            return Response({"follow_requests": serializer.data["follow_requests"]}, status.HTTP_200_OK)
+        else:
+            return Response({"message": "Your page isn't private"}, status.HTTP_400_BAD_REQUEST)
 
-
-class UserPageViewSet(viewsets.ModelViewSet):
-    permission_classes = (permissions.IsAuthenticated,)
-
-    serializer_classes = {
-        "list": PageListSerializer,
-        "create": PageListSerializer,
-        "page_follow_requests": FollowersListSerializer,
-        "all_follow_requests": FollowersListSerializer,
-        "followers": FollowersListSerializer,
-        "deny_follow_request": FollowerSerializer,
-        "accept_follow_request": FollowerSerializer,
-    }
-
-    def get_queryset(self):
-        return get_unblocked_pages(is_owner_page=True, owner=self.request.user)
-
-    def get_serializer_class(self):
-        return self.serializer_classes.get(self.action, PageUserSerializer)
-
-    @action(detail=True, methods=["get"])
+    @action(detail=True, methods=("get",))
     def followers(self, request, pk=None):
-        all_page_followers = get_page_followers(page_pk=pk)
-        serializer = self.get_serializer(all_page_followers, many=True)
-        serializer.is_valid(raise_exception=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+        page = self.get_object()
+        self.check_permissions(request)
+        self.check_object_permissions(request, page)
+        serializer = FollowRequestsSerializer(page)
+        return Response({"followers": serializer.data["followers"]}, status.HTTP_200_OK)
 
-    @action(detail=True, methods=["get"], url_path="follow-requests")
-    def page_follow_requests(self, pk=None):
-        page_follow_requests = get_page_follow_requests(page_pk=pk)
-        serializer = self.get_serializer(page_follow_requests, many=True)
-        serializer.is_valid(raise_exception=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    @action(detail=True, methods=("post",), url_path="follow")
+    def follow(self, request, pk=None):
+        page = self.get_object()
+        self.check_permissions(request)
+        self.check_object_permissions(request, self.get_object())
+        if PageServices.is_user_in_page_follow_requests(request.user, page) or PageServices.is_user_in_page_followers(
+            request.user, page
+        ):
+            return Response({"message": "You are already sent follow request"}, status.HTTP_400_BAD_REQUEST)
+        if page.is_private:
+            PageServices.add_user_to_page_follow_requests(request.user, page)
+        else:
+            PageServices.add_user_to_page_followers(request.user, page)
+        return Response({"message": "Ok"}, status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"], url_path="accept")
-    def accept_follow_request(self, request, pk=None):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data["email"]
-        is_follow_request = accept_follow_request(follower_email=email, page_pk=pk)
-        if is_follow_request:
-            data = {"method": "add", "user_id": self.request.user.pk, "value": "subscribers"}
-            data.update()
-        return Response(
-            {"detail": "You have successfully accepted user to followers or user is already your follower."},
-            status=status.HTTP_200_OK,
-        )
+    @action(detail=True, methods=("post",), url_path="unfollow")
+    def unfollow(self, request, pk=None):
+        page = get_object_or_404(Page, pk=pk)
+        self.check_object_permissions(request, self.get_object())
+        if PageServices.is_user_in_page_followers(request.user, page):
+            PageServices.remove_user_from_followers(page, request.user)
+            return Response(
+                {"message": "You have successfully unsubscribed from the page"}, status.HTTP_400_BAD_REQUEST
+            )
+        return Response({"message": "You have not subscribed to this page"}, status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"], url_path="deny")
-    def deny_follow_request(self, request, pk=None):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data["email"]
-        deny_follow_request(follower_email=email, page_pk=pk)
-        return Response(
-            {"detail": "You have successfully removed user from followers or user is already removed."},
-            status=status.HTTP_200_OK,
-        )
+    @action(detail=True, methods=["patch"])
+    def accept(self, request, pk=None):
+        page = get_object_or_404(Page, pk=pk)
+        self.check_object_permissions(request, page)
+        PageServices.add_user_to_followers(page, request.data.get("user_id", None))
+        return Response("Success", status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"], url_path="accept-all")
-    def accept_all_follow_requests(self, request, pk=None):
-        follow_requests_number = accept_all_follow_requests(page_pk=pk)
-        if follow_requests_number > 0:
-            data = {
-                "method": "add",
-                "user_id": self.request.user.pk,
-                "requests": follow_requests_number,
-                "many": True,
-                "value": "subscribers",
-            }
-            data.update()
-        return Response({"detail": "You have successfully accepted all follow requests."}, status=status.HTTP_200_OK)
+    @action(detail=True, methods=["patch"])
+    def accept_all(self, request, pk=None):
+        page = get_object_or_404(Page, pk=pk)
+        self.check_object_permissions(request, page)
+        PageServices.add_all_users_to_followers(page)
+        return Response("Success", status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["patch"])
+    def deny(self, request, pk=None):
+        page = get_object_or_404(Page, pk=pk)
+        self.check_object_permissions(request, page)
+        PageServices.remove_user_from_requests(page, request.data.get("user_id", None))
+        return Response("Success", status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["patch"])
+    def deny_all(self, request, pk=None):
+        page = get_object_or_404(Page, pk=pk)
+        self.check_object_permissions(request, page)
+        PageServices.remove_all_users_from_requests(page)
+        return Response("Success", status=status.HTTP_200_OK)
 
 
 class TagViewSet(viewsets.ModelViewSet):

@@ -1,4 +1,4 @@
-from api.v1.services.page_services import is_page_unblocked
+from api.v1.services.page_services import PageServices
 from django.contrib.auth.models import AnonymousUser
 from person.models import User
 from rest_framework import permissions
@@ -38,13 +38,13 @@ class PageIsPublicOrOwner(permissions.BasePermission):
 class PageIsntBlocked(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if obj.unblock_date:
-            return is_page_unblocked(obj.unblock_date)
+            return PageServices.is_page_unblocked(obj.unblock_date)
         return IsAdminOrModerator.has_permission(self, request, view)
 
 
 class UserIsFollower(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        return obj.id in request.user.followed_pages
+        return obj.id in request.user.followers.all()
 
 
 class PageIsPublicOrFollowerOrOwnerOrModeratorOrAdmin(permissions.BasePermission):
