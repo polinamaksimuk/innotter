@@ -9,9 +9,8 @@ from api.v1.services.user_services import (
     set_refresh_token,
 )
 from django.core.exceptions import ObjectDoesNotExist
-from person.models import User
 from person.permissions import *
-from rest_framework import parsers, renderers, status, viewsets
+from rest_framework import generics, mixins, parsers, renderers, status, viewsets
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
