@@ -104,6 +104,18 @@ class FollowRequestsSerializer(serializers.ModelSerializer):
             return instance
 
 
+class FollowersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Page
+        fields = ("followers",)
+
+
+class FollowRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Page
+        fields = ("follow_requests",)
+
+
 class FollowersListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

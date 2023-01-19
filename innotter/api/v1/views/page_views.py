@@ -1,6 +1,8 @@
 from api.v1.serializers.page_serializers import (
     AdminPageDetailSerializer,
     FollowersListSerializer,
+    FollowersSerializer,
+    FollowRequestSerializer,
     FollowRequestsSerializer,
     ModerPageDetailSerializer,
     PageListSerializer,
@@ -110,17 +112,16 @@ class PageViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(request, page)
         if page.is_private:
             serializer = FollowRequestsSerializer(page)
-            return Response({"follow_requests": serializer.data["follow_requests"]}, status.HTTP_200_OK)
-        else:
-            return Response({"message": "Your page isn't private"}, status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status.HTTP_200_OK)
+        return Response({"message": "Your page isn't private"}, status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=("get",))
     def followers(self, request, pk=None):
         page = self.get_object()
         self.check_permissions(request)
         self.check_object_permissions(request, page)
-        serializer = FollowRequestsSerializer(page)
-        return Response({"followers": serializer.data["followers"]}, status.HTTP_200_OK)
+        serializer = FollowersSerializer(page)
+        return Response(serializer.data, status.HTTP_200_OK)
 
     @action(detail=True, methods=("post",), url_path="follow")
     def follow(self, request, pk=None):
