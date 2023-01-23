@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from person.models import User
 from rest_framework import permissions
 
@@ -9,13 +10,15 @@ class IsUserOwner(permissions.BasePermission):
 
 class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.user.role:
-            return request.user.role == User.Roles.ADMIN
-        return False
+        if isinstance(request.user, AnonymousUser):
+            return False
+        return request.user.role == User.Roles.ADMIN
 
 
 class IsModerator(permissions.BasePermission):
     def has_permission(self, request, view):
+        if isinstance(request.user, AnonymousUser):
+            return False
         return request.user.role == User.Roles.MODERATOR
 
 
