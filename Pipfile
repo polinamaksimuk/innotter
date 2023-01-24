@@ -17,6 +17,13 @@ pyjwt = "==2.6.0"
 redis = "==3.5.3"
 django-filter = "*"
 drf-extensions = "*"
+pytest = "*"
+pytest-django = "*"
+faker = "*"
+factory-boy = "*"
+pytest-factoryboy = "*"
+model-bakery = "*"
+pytest-mock = "*"
 
 [dev-packages]
 

@@ -10,7 +10,7 @@ from api.v1.services.user_services import (
 )
 from django.core.exceptions import ObjectDoesNotExist
 from person.permissions import *
-from rest_framework import generics, mixins, parsers, renderers, status, viewsets
+from rest_framework import parsers, renderers, status, viewsets
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
@@ -55,6 +55,15 @@ class UserRegisterViewSet(CreateModelMixin, viewsets.GenericViewSet):
                 data={"message": "Registration completed successfully. Now login!"}, status=status.HTTP_200_OK
             )
         return Response(data={"message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, instance, validated_data):
+        password: str = validated_data.pop("password", None)
+        for (key, value) in validated_data.items():
+            setattr(instance, key, value)
+        if password is not None:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 
 class JSONWebTokenAuthViewSet(viewsets.ViewSet):
