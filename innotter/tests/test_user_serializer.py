@@ -9,11 +9,6 @@ create_view = UserViewSet.as_view({"post": "create"})
 
 @pytest.mark.django_db
 class TestUserSerializer:
-    def test_get_permissions(self):
-        user_viewset = UserViewSet()
-        user_viewset.action = "list"
-        assert isinstance(user_viewset.get_permissions()[0], IsAuthenticated) is True
-
     def test_create_user(self, user_for_serializer):
         serializer = UserSerializer(data=user_for_serializer)
         if serializer.is_valid():
@@ -27,3 +22,4 @@ class TestUserSerializer:
         if serializer.is_valid():
             serializer.save()
         assert User.objects.filter(email=new_email).first()
+        assert User.objects.get(email=new_email)

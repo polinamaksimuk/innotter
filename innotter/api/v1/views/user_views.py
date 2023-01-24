@@ -57,7 +57,7 @@ class UserRegisterViewSet(CreateModelMixin, viewsets.GenericViewSet):
         return Response(data={"message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, instance, validated_data):
-        password = validated_data.pop("password", None)
+        password: str = validated_data.pop("password", None)
         for (key, value) in validated_data.items():
             setattr(instance, key, value)
         if password is not None:
