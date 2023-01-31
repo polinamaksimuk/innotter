@@ -2,14 +2,12 @@ from api.v1.serializers.page_serializers import (
     AdminPageDetailSerializer,
     FollowersListSerializer,
     FollowersSerializer,
-    FollowRequestSerializer,
     FollowRequestsSerializer,
     ModerPageDetailSerializer,
     PageListSerializer,
     PageUserSerializer,
     TagSerializer,
 )
-from api.v1.services.page_services import PageServices
 from django.shortcuts import get_object_or_404
 from page.models import Page, Tag
 from page.permissions import *

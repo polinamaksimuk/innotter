@@ -4,9 +4,13 @@ from rest_framework import serializers
 
 
 class PostSerializer(serializers.ModelSerializer):
-    page = PageUserSerializer()
-
     class Meta:
         model = Post
-        depth = 1
-        fields = ["page", "content", "reply_to"]
+        fields = [
+            "page",
+            "content",
+            "reply_to",
+            "created_at",
+            "updated_at",
+            "users_liked",
+        ]
