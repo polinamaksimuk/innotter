@@ -1,15 +1,30 @@
-from api.v1.serializers.post_serializers import PostSerializer
+from api.v1.serializers.post_serializers import (
+    CreatePostSerializer,
+    LikesSerializer,
+    ListPostSerializer,
+    PostSerializer,
+    RetrievePostSerializer,
+    UpdatePostSerializer,
+)
 from api.v1.services.post_services import PostServices
 from django.shortcuts import get_object_or_404
 from page.models import Page
 from page.permissions import *
 from post.models import Post
-from rest_framework import status, viewsets
+from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 
-class PostViewSet(viewsets.ModelViewSet):
+class PostViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet,
+):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = []
@@ -46,18 +61,31 @@ class PostViewSet(viewsets.ModelViewSet):
             PageIsPublic,
             PageIsntBlocked,
         ),
+        "total_likes": (
+            permissions.IsAuthenticated,
+            PageIsPublic,
+            PageIsntBlocked,
+        ),
+    }
+
+    serializer_classes = {
+        "create": CreatePostSerializer,
+        "update": UpdatePostSerializer,
+        "partial_update": UpdatePostSerializer,
+        "retrieve": RetrievePostSerializer,
+        "list": ListPostSerializer,
     }
 
     def get_queryset(self):
         parent_page_id = self.kwargs.get("parent_lookup_page_id")
         return Post.objects.get_posts_of_page(parent_page_id)
 
+    def get_serializer_class(self):
+        return self.serializer_classes.get(self.action)
+
     def get_permissions(self):
-        if self.action in self.permissions_dict:
-            perms = self.permissions_dict[self.action]
-        else:
-            perms = []
-        return [permission() for permission in perms]
+        permissions_classes = self.permissions_dict.get(self.action)
+        return [permission() for permission in permissions_classes]
 
     def list(self, request, *args, **kwargs):
         parent_page_id = self.kwargs.get("parent_lookup_page_id")
@@ -78,5 +106,5 @@ class PostViewSet(viewsets.ModelViewSet):
         page = get_object_or_404(Page, pk=parent_lookup_page_id)
         post = get_object_or_404(Post, pk=pk)
         self.check_object_permissions(request, page)
-        total_likes = post.total_likes
-        return Response({"total_likes": total_likes}, status=status.HTTP_200_OK)
+        serializer = LikesSerializer(post)
+        return Response(serializer.data, status=status.HTTP_200_OK)

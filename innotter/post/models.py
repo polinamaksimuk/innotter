@@ -1,4 +1,4 @@
-from api.v1.services.managers import PostManager
+from api.v1.managers.managers_post import PostManager
 from django.db import models
 from page.models import Page
 
@@ -23,9 +23,6 @@ class Post(models.Model):
 
     def __str__(self):
         return f"id: {self.pk}, page: {self.page.name}"
-
-    def get_absolute_url(self):
-        return f"/posts/{self.pk}/"
 
     @property
     def total_likes(self):

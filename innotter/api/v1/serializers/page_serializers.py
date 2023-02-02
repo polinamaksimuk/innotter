@@ -22,7 +22,7 @@ class PageListSerializer(serializers.ModelSerializer):
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = ["name"]
+        fields = ("name",)
 
 
 class PageUserSerializer(serializers.ModelSerializer):
@@ -36,7 +36,7 @@ class PageUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Page
         depth = 1
-        fields = [
+        fields = (
             "name",
             "uuid",
             "description",
@@ -46,8 +46,7 @@ class PageUserSerializer(serializers.ModelSerializer):
             "follow_requests",
             "tags",
             "is_private",
-            "posts",
-        ]
+        )
         read_only_fields = ("unblock_date", "owner")
 
 
@@ -58,7 +57,7 @@ class PageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Page
-        fields = [
+        fields = (
             "id",
             "name",
             "uuid",
@@ -69,8 +68,7 @@ class PageSerializer(serializers.ModelSerializer):
             "is_private",
             "unblock_date",
             "is_blocked",
-            "posts",
-        ]
+        )
         read_only_fields = (
             "id",
             "name",
