@@ -74,6 +74,7 @@ class PostViewSet(
         "partial_update": UpdatePostSerializer,
         "retrieve": RetrievePostSerializer,
         "list": ListPostSerializer,
+        "total_likes": LikesSerializer,
     }
 
     def get_queryset(self):
@@ -106,5 +107,6 @@ class PostViewSet(
         page = get_object_or_404(Page, pk=parent_lookup_page_id)
         post = get_object_or_404(Post, pk=pk)
         self.check_object_permissions(request, page)
-        serializer = LikesSerializer(post)
+        serializer_classes = self.get_serializer_class()
+        serializer = serializer_classes(post)
         return Response(serializer.data, status=status.HTTP_200_OK)
