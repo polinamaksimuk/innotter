@@ -2,24 +2,30 @@ from api.v1.serializers.page_serializers import (
     AdminPageDetailSerializer,
     FollowersListSerializer,
     FollowersSerializer,
-    FollowRequestSerializer,
     FollowRequestsSerializer,
     ModerPageDetailSerializer,
     PageListSerializer,
     PageUserSerializer,
     TagSerializer,
 )
-from api.v1.services.page_services import PageServices
 from django.shortcuts import get_object_or_404
 from page.models import Page, Tag
 from page.permissions import *
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 
-class PageViewSet(viewsets.ModelViewSet):
+class PageViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet,
+):
     queryset = Page.objects.all()
     permission_classes = []
     permissions_dict = {
@@ -73,11 +79,8 @@ class PageViewSet(viewsets.ModelViewSet):
     )
 
     def get_permissions(self):
-        if self.action in self.permissions_dict:
-            perms = self.permissions_dict[self.action]
-        else:
-            perms = []
-        return [permission() for permission in perms]
+        permissions_classes = self.permissions_dict.get(self.action)
+        return [permission() for permission in permissions_classes]
 
     def check_permissions(self, request):
         try:

@@ -10,16 +10,25 @@ from api.v1.services.user_services import (
 )
 from django.core.exceptions import ObjectDoesNotExist
 from person.permissions import *
-from rest_framework import parsers, renderers, status, viewsets
+from rest_framework import mixins, parsers, permissions, renderers, status, viewsets
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 from innotter import settings
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet,
+):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = []
@@ -36,11 +45,8 @@ class UserViewSet(viewsets.ModelViewSet):
     }
 
     def get_permissions(self):
-        if self.action in self.permissions_dict:
-            perms = self.permissions_dict[self.action]
-        else:
-            perms = []
-        return [permission() for permission in perms]
+        permissions_classes = self.permissions_dict.get(self.action)
+        return [permission() for permission in permissions_classes]
 
 
 class UserRegisterViewSet(CreateModelMixin, viewsets.GenericViewSet):
@@ -75,6 +81,7 @@ class JSONWebTokenAuthViewSet(viewsets.ViewSet):
     )
     renderer_classes = (renderers.JSONRenderer,)
     serializer_class = AuthTokenSerializer
+    permission_classes = [AllowAny]
 
     def create(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -104,7 +111,13 @@ class JSONWebTokenAuthViewSet(viewsets.ViewSet):
             return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=("post",), detail=False, url_path="refresh", url_name="refresh")
+    @action(
+        methods=("post",),
+        detail=False,
+        url_path="refresh",
+        url_name="refresh",
+        permission_classes=[permissions.IsAuthenticated],
+    )
     def refresh(self, request):
         refresh_token = request.COOKIES.get(settings.CUSTOM_JWT["AUTH_COOKIE_REFRESH"])
         if refresh_token:
