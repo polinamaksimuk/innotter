@@ -9,7 +9,7 @@ services:
     expose:
       - 5432
     ports:
-      - 3432:5432
+      - "3432:5432"
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -26,7 +26,7 @@ services:
     env_file:
       - innotter/.env
     ports:
-      - 8000:8000
+      - "8000:8000"
     restart: on-failure
     command: bash -c "python innotter/manage.py migrate && python innotter/manage.py runserver 0.0.0.0:8000"
 
@@ -36,4 +36,34 @@ services:
       expose:
         - 6379
       ports:
-        - 6379:6379
+        - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    depends_on:
+      - db
+
+  celery:
+    restart: always
+    build:
+      context: .
+    entrypoint: celery -A innotter worker --loglevel=info -E
+    env_file:
+      - innotter/.env
+    depends_on:
+      - rabbitmq
+      - innoter-api
+
+  flower:
+    image: mher/flower
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - FLOWER_PORT=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - rabbitmq
+      - celery
