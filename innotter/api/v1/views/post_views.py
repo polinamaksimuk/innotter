@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404
 from page.models import Page
 from page.permissions import *
 from post.models import Post
+from post.tasks import email_for_followers
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -87,6 +88,15 @@ class PostViewSet(
     def get_permissions(self):
         permissions_classes = self.permissions_dict.get(self.action)
         return [permission() for permission in permissions_classes]
+
+    def create(self, request, *args, **kwargs):
+        serializer = PostSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        page = serializer.validated_data.get("page")
+        self.check_object_permissions(request=request, obj=page)
+        serializer.save()
+        email_for_followers.delay(page.id)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
         parent_page_id = self.kwargs.get("parent_lookup_page_id")

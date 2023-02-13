@@ -52,6 +52,7 @@ class UserViewSet(
 class UserRegisterViewSet(CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
+    permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
         serializer = UserRegisterSerializer(data=request.data)
